@@ -1,0 +1,11 @@
+# Disk images and appliances never belong in the repository - they go on
+# the Releases page. GitHub rejects files over 100 MB in a repo anyway.
+*.vmdk
+*.vmdk.gz
+*.part*
+*.ova
+*.img
+*.raw
+*.iso
+*.log
+out/

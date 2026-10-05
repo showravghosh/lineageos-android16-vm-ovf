@@ -1,0 +1,22 @@
+# /data lives on the SECOND disk. That disk is exposed as vdb under QEMU-virtio
+# and as sdb under VMware, so a raw device path can only ever be right in one of
+# them. Instead the disk carries a GPT whose single partition is named
+# "userdata", and ueventd turns that name into /dev/block/by-name/userdata on
+# any transport - virtio, SATA, NVMe. Every other mount in fstab.virt-common
+# already works this way; /data was the only device-path holdout.
+#
+# There must also be exactly ONE /data *device*: /data is metadata-encrypted, so
+# a raw superblock check fails, and fs_mgr only runs the decryption path for the
+# record it commits to - extra records for other devices are skipped with
+# "Invalid ext4 superblock" and /data never mounts. Two records for the same
+# device with different filesystems (below) is the normal upstream pattern.
+# Userdata (on separate disk)
+/dev/block/by-name/userdata /data ext4 nodev,noatime,nosuid,discard latemount,check,quota,formattable,fileencryption,keydirectory=/metadata/vold/metadata_encryption,checkpoint=block
+/dev/block/by-name/userdata /data f2fs nodev,noatime,nosuid,discard,reserve_root=32768 latemount,check,quota,formattable,fileencryption,keydirectory=/metadata/vold/metadata_encryption,fscompress,checkpoint=fs
+
+# SD card (recovery only)
+/dev/block/sda /sdcard vfat ro,defaults recoveryonly
+
+# VirtioFS
+share /mnt/vendor/shared virtiofs nosuid,nodev,noatime nofail
+share /mnt/vendor/shared 9p trans=virtio,version=9p2000.L,nosuid,nodev,noatime nofail
